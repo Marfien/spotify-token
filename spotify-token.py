@@ -51,7 +51,7 @@ def get_auth_url():
     return auth_url
 
 
-def get_access_token(authorization_code):
+def get_access_and_refresh_token(authorization_code):
     # Access Token erhalten
     token_url = 'https://accounts.spotify.com/api/token'
     token_data = {
@@ -64,9 +64,10 @@ def get_access_token(authorization_code):
 
     response = requests.post(token_url, data=token_data)
     if response.status_code == 200:
-        return response.json()['access_token']
+        json = response.json()
+        return json['access_token'], json['refresh_token']
 
-    print('Error: Cannot read "access_token" property.')
+    print(f'Error: Request unsuccessful. Status code: {response.status_code}.')
     return None
 
 
@@ -99,7 +100,7 @@ class SpotifyAuthHandler(BaseHTTPRequestHandler):
         if not authorization_code:
             return
 
-        access_token = get_access_token(authorization_code)
+        access_token, refresh_token = get_access_token(authorization_code)
 
         if not access_token:
             return
@@ -111,8 +112,9 @@ class SpotifyAuthHandler(BaseHTTPRequestHandler):
         self.wfile.flush()
 
         threading.Thread(target=WEB_SERVER.shutdown).start()
-        input('Press enter to show access token...')
+        input('Press enter to show tokens...')
         print(f'Access Token: {access_token}')
+        print(f'Refresh Token: {refresh_token}')
     
     def log_request(self, code: int | str = ..., size: int | str = ...) -> None:
         if not DEBUG:
